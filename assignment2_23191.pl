@@ -9,7 +9,7 @@ solve_task(Task,Cost):-
 
 %%%%%%%%%% Useful predicates %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% backtracking depth-first search, needs to be changed to agenda-based A*
-solve_task_bt(Task,Agenda,Depth,RPath,[cost(Cost),depth(Depth)],NewPos) :-
+solve_task_bt(Task,Agenda,D,RPath,[cost(Cost),depth(D)],NewPos) :-
   achieved(Task,Agenda,RPath,Cost,NewPos).
 solve_task_bt(Task,Agenda,D,RR,Cost,NewPos) :-
   Agenda = [Current|Rest],
@@ -19,15 +19,17 @@ solve_task_bt(Task,Agenda,D,RR,Cost,NewPos) :-
   D1 is D+1,
   G1 is G+C,
   map_distance(P,Task,Dist),
-  F1 is G1 + Dist,
+  F1 is G1 + Dist, %f(n) = g(n) + h(n)
   solve_task_bt(Task,[[c(F1,G1,P1),R|RPath]],D1,RR,Cost,NewPos).  % backtrack search
 
-achieved(go(Exit),Current,RPath,Cost,NewPos) :-
+achieved(go(Exit),Agenda,RPath,Cost,NewPos) :-
+  Agenda = [Current|Rest],
   Current = [c(Cost,NewPos)|RPath],
   ( Exit=none -> true
   ; otherwise -> RPath = [Exit|_]
   ).
-achieved(find(O),Current,RPath,Cost,NewPos) :-
+achieved(find(O),Agenda,RPath,Cost,NewPos) :-
+  Agenda = [Current|Rest],
   Current = [c(Cost,NewPos)|RPath],
   ( O=none    -> true
   ; otherwise -> RPath = [Last|_],map_adjacent(Last,_,O)
