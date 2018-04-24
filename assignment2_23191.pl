@@ -61,44 +61,20 @@ addChildren(PS,RPath,Current,NewAgenda,Target,Result) :-
 achieved(go(Exit),Agenda,ClosedSet,F,G,NewPos,Check,NewCheck) :-
   Agenda = [Current|Rest],
   Current = [c(F,G,NewPos)|RPath],
-  write(rpath),write(RPath),nl,
   NewCheck = [NewPos|RPath],
-  write(check),write(NewCheck),nl,
   ( Exit=none -> true
   ; otherwise -> NewCheck = [Exit|_]
   ).
-achieved(find(O),Agenda,RPath,F,G,NewPos) :-
+
+achieved(find(O),Agenda,ClosedSet,F,G,NewPos,Check,NewCheck) :-
   Agenda = [Current|Rest],
   Current = [c(F,G,NewPos)|RPath],
+  write(rpath),write(RPath),nl,
+  NewCheck = [NewPos|RPath],
+  write(check),write(NewCheck),nl,
   ( O=none    -> true
   ; otherwise -> RPath = [Last|_],map_adjacent(Last,_,O)
   ).
 
 search(F,N,N,1) :-
   map_adjacent(F,N,empty).
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
