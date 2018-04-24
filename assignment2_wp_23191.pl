@@ -74,41 +74,37 @@ find_identity_o(A):-
   goToNearOracle(S, Oracles, Stations, L),
   find_identity_o(S, A, [], Actors, L, Oracles, Stations).
 
-bf_search([],Current,Depth,RPath,Cost,Acc,Acc).
-bf_search(Targets,Current,D,RR,Cost,Acc,Results) :-
-  found(Targets,Current,D,RR,Cost,Acc,Results).
-bf_search(Targets,Current,D,RR,Cost,Acc,Results) :-
-  Current = [c(F,P)|RPath],
-  search(P,P1,R,C),
+flood_check([],_,_,_,Acc,Acc).
+flood_check(Targets,Visited,LastRound,[],Acc,Result) :-
+  append(LastRound, Visited, NewVisited),
+  flood_expand(Targets,NewVisited,LastRound,[],Acc,Result).
+flood_check(Targets,Visited,LastRound,Remaining,Acc,Result) :-
+  Remaining = [Cell|Rest],
+  flood_check_targets(Targets,Cell,Acc,NewAcc,Targets,NewTargets),
+  flood_check(NewTargets,Visited,LastRound,Rest,NewAcc,Result).
+
+flood_check_targets([],_,PAcc,PAcc,TDec,TDec).
+flood_check_targets(ToCheck,Cell,PAcc,PResult,TDec,TResult) :-
+  ToCheck = [Target|Rest],
   (
-    memberchk(R,RPath) -> fail
-  ; otherwise -> D1 is D+1,
-                 F1 is F+C,
-                 bf_search(Targets,[c(F1,P1),R|RPath],D1,RR,Cost,Acc,Results)
+    map_adjacent(Cell,_,Target) -> write('Found: '),write(Target),nl,delete(TDec,Target,NewTDec), flood_check_targets(Rest,Cell,[(Target|Cell)|PAcc],PResult,NewTDec,TResult)
+  ; otherwise -> flood_check_targets(Rest,Cell,PAcc,PResult,TDec,TResult)
   ).
-  % \+ memberchk(R,RPath),  % check we have not been here already
-  % D1 is D+1,
-  % F1 is F+C,
-  % bf_search(Targets,[c(F1,P1),R|RPath],D1,RR,Cost,Acc,Results).  % backtrack search
 
-found(Targets,Current,Depth,RR,Cost,Acc,Results) :-
-  Current = [c(_,NewPos)|RPath],
-  RPath = [Last|_],
-  write('looking for: '),write(Targets),nl,
-  select(Target, Targets, NewTargets),
-  map_adjacent(Last,_,Target),
-  write('found: '),write(Target),nl,
-  % write(remaining_targets_are_),write(NewTargets),nl,
-  bf_search(NewTargets,Current,Depth,RR,Cost,[(Target, NewPos)|Acc],Results).
-
-search(F,N,N,1) :-
-  map_adjacent(F,N,empty).
-
+flood_expand(Targets,Visited,[],NewArea,Acc,Result) :-
+  %remove duplicates
+  sort(NewArea, X),
+  flood_check(Targets,Visited,X,X,Acc,Result).
+flood_expand(Targets,Visited,Remaining,NewArea,Acc,Result) :-
+  Remaining = [Cell|Rest],
+  findall(P, (map_adjacent(Cell,P,empty), \+ memberchk(P,Visited)), Ps),
+  append(Ps, NewArea, NewNewArea),
+  flood_expand(Targets,Visited,Rest,NewNewArea,Acc,Result).
 
 content_search(Targets, Results):-
   my_agent(A),
   query_world(agent_current_position, [A, P]),
-  bf_search(Targets,[c(0,P),P],0,_,_,[],Results).
+  flood_check(Targets,[],[P],[P],[],Results).
 
 preprocess(Items):-
   content_search([o(1),o(2),o(3),o(4),o(5),o(6),o(7),o(8),o(9),o(10),c(1),c(2)], Items),!.
