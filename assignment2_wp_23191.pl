@@ -4,7 +4,7 @@
 % find_identity(-A)
 find_identity(A):-
   (
-    part_module(2)   -> find_identity_2(A)
+    part_module(2)   -> find_identity_2(A),!
   ; otherwise -> find_identity_o(A)
   ).
 
