@@ -28,13 +28,13 @@ find_identity_2(X, As, [B|Bs], Lt):-
   ).
 
 getPathCost(S, [], CB, CB).
-getPathCost(S, [(X, Pos)|Rest], (Y, Path), FB):-
+getPathCost(S, [(X| Pos)|Rest], (Y, Path), FB):-
   solve_task_bt(go(Pos), [[c(0,0,S), []]], _, _, _, _, _, BackPath),!,
   write(found_path),nl,
   length(Path, L1),
   length(BackPath, L2),
   (
-    Y < 0 -> getPathCost(S, Rest, (X, BackPath), FB)
+    Y = o(-1) -> getPathCost(S, Rest, (X, BackPath), FB)
   ; L1 > L2 -> getPathCost(S, Rest, (X, BackPath), FB)
   ; otherwise -> getPathCost(S, Rest, (Y, Path), FB)
   ).
@@ -43,14 +43,26 @@ getPathCost(S, [(X, Pos)|Rest], (Y, Path), FB):-
 % this finds nearest oracle, checks you can go there with ur
 % energy, then gets a link from that oracle
 goToNearOracle(S, O, C, L):-
-  getPathCost(S, O, (-1, []), CB),
-  CB = [ID|Path],
+  getPathCost(S, O, (o(-1), []), CB),
+  CB = (ID,Path),
   Path = [End|Tail],
   write(CB),nl,
-  getPathCost(End, C, (-1, []), CB2).
-  % check can reach nearest charge from this point
-  % take path from cb to oracle
-  % query oracle to get a link
+  getPathCost(End, C, (o(-1), []), CB2),
+  % CB2 = (ID2,Path2),
+  write(CB2),nl,
+  length(Path, L1),
+  length(Path2, L2),
+  my_agent(A),
+  query_world(agent_current_energy, [A, E]),
+  (
+    L1 + L2 + 10 < E -> reverse(Path,[_Init|P]),
+                        query_world( agent_do_moves, [A,P] ),
+                        agent_ask_oracle(oscar, ID, link, L)
+  ; otherwise ->  getPathCost(S, C, (o(-1),[]), (CS,CSPath)),
+                  reverse(CSPath,[_Init|P]),
+                  query_world( agent_do_moves, [A,P]),
+                  agent_topup_energy(A,CS)
+  ).
 
 find_identity_o(S, X, [A|[]], [], Lt, O, C):-
   X = A.
@@ -67,11 +79,11 @@ find_identity_o(S, X, As, [B|Bs], Lt, O, C):-
   ).
 
 find_identity_o(A):-
-  find_oracles(Oracles),
-  find_stations(Stations),
+  preprocess(Oracles, Stations),
   my_agent(Agent),
   query_world(agent_current_position, [Agent, S]),
   bagof(X, actor(X), Actors),
+  write(predone),nl,
   goToNearOracle(S, Oracles, Stations, L),
   find_identity_o(S, A, [], Actors, L, Oracles, Stations).
 

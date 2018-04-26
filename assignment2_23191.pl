@@ -8,7 +8,6 @@ solve_task(Task,Cost):-
   write(BackPath), % prune choice point for efficiency
   reverse(BackPath,[_Init|Path]),
   write(Path),
-  %write(Path),
   query_world( agent_do_moves, [Agent,Path] ).
 
 %%%%%%%%%% Useful predicates %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
