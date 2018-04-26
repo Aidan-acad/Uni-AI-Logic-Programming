@@ -44,7 +44,13 @@ getPathCost(S, [(X, Pos)|Rest], (Y, Path), FB):-
 % energy, then gets a link from that oracle
 goToNearOracle(S, O, C, L):-
   getPathCost(S, O, (-1, []), CB),
-  write(CB),nl.
+  CB = [ID|Path],
+  Path = [End|Tail],
+  write(CB),nl,
+  getPathCost(End, C, (-1, []), CB2).
+  % check can reach nearest charge from this point
+  % take path from cb to oracle
+  % query oracle to get a link
 
 find_identity_o(S, X, [A|[]], [], Lt, O, C):-
   X = A.
@@ -62,15 +68,10 @@ find_identity_o(S, X, As, [B|Bs], Lt, O, C):-
 
 find_identity_o(A):-
   find_oracles(Oracles),
-  write(oracles),nl,
   find_stations(Stations),
-  write(stations),nl,
   my_agent(Agent),
-  write(agent),nl,
   query_world(agent_current_position, [Agent, S]),
-  write(position),nl,
   bagof(X, actor(X), Actors),
-  write(actors),nl,
   goToNearOracle(S, Oracles, Stations, L),
   find_identity_o(S, A, [], Actors, L, Oracles, Stations).
 
@@ -106,6 +107,8 @@ content_search(Targets, Results):-
   query_world(agent_current_position, [A, P]),
   flood_check(Targets,[],[P],[P],[],Results).
 
-preprocess(Items):-
-  content_search([o(1),o(2),o(3),o(4),o(5),o(6),o(7),o(8),o(9),o(10),c(1),c(2)], Items),!.
-  
+preprocess(Oracles, Charging):-
+  content_search([o(1),o(2),o(3),o(4),o(5),o(6),o(7),o(8),o(9),o(10),c(1),c(2)], Items),!,
+  write(Items),nl,
+  exclude(c(_), Items, Oracles),
+  exclude(o(_), Items, Charging).  
