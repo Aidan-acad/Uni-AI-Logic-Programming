@@ -106,6 +106,10 @@ content_search(Targets, Results):-
   query_world(agent_current_position, [A, P]),
   flood_check(Targets,[],[P],[P],[],Results).
 
-preprocess(Items):-
-  content_search([o(1),o(2),o(3),o(4),o(5),o(6),o(7),o(8),o(9),o(10),c(1),c(2)], Items),!.
+is_oracle((o(_)|_)).
+is_charging((c(_)|_)).
+preprocess(Oracles, Charging):-
+  content_search([o(1),o(2),o(3),o(4),o(5),o(6),o(7),o(8),o(9),o(10),c(1),c(2)], Items),!,
+  include(is_oracle, Items, Oracles),
+  include(is_charging, Items, Charging).
   
