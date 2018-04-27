@@ -5,7 +5,7 @@
 find_identity(A):-
   (
     part_module(2)   -> find_identity_2(A),!
-  ; otherwise -> find_identity_o(A)
+  ; otherwise -> find_identity_o(A),!
   ).
 
 % loop through actors, and their list of links and compare
@@ -29,16 +29,34 @@ find_identity_2(X, As, [B|Bs], Lt):-
 
 getPathCost(S, [], CB, CB).
 getPathCost(S, [(X| Pos)|Rest], (Y, Path), FB):-
+  (
+    my_agent(A), \+query_world(agent_check_oracle, [A, X]) ->
+      solve_task_bt(go(Pos), [[c(0,0,S), []]], _, _, _, _, _, BackPath),!,
+      write(found_path),nl,
+      length(Path, L1),
+      length(BackPath, L2),
+      (
+        Y = o(-1) -> getPathCost(S, Rest, (X, BackPath), FB)
+      ; L1 > L2 -> getPathCost(S, Rest, (X, BackPath), FB)
+      ; otherwise -> getPathCost(S, Rest, (Y, Path), FB)
+      )
+  ; otherwise -> getPathCost(S, Rest, (Y, Path), FB)
+  ).
+
+getPathCCost(S, [], CB, CB).
+getPathCCost(S, [(X| Pos)|Rest], (Y, Path), FB):-
   solve_task_bt(go(Pos), [[c(0,0,S), []]], _, _, _, _, _, BackPath),!,
   write(found_path),nl,
   length(Path, L1),
   length(BackPath, L2),
   (
-    Y = o(-1) -> getPathCost(S, Rest, (X, BackPath), FB)
-  ; L1 > L2 -> getPathCost(S, Rest, (X, BackPath), FB)
-  ; otherwise -> getPathCost(S, Rest, (Y, Path), FB)
+    Y = o(-1) -> getPathCCost(S, Rest, (X, BackPath), FB)
+  ; L1 > L2 -> getPathCCost(S, Rest, (X, BackPath), FB)
+  ; otherwise -> getPathCCost(S, Rest, (Y, Path), FB)
   ).
-  
+
+add(X, Y, Z, A):-
+  A is X + Y + Z.
 
 % this finds nearest oracle, checks you can go there with ur
 % energy, then gets a link from that oracle
@@ -47,35 +65,41 @@ goToNearOracle(S, O, C, L):-
   CB = (ID,Path),
   Path = [End|Tail],
   write(CB),nl,
-  getPathCost(End, C, (o(-1), []), CB2),
-  % CB2 = (ID2,Path2),
+  getPathCCost(End, C, (o(-1), []), CB2),
+  CB2 = (ID2,Path2),
   write(CB2),nl,
   length(Path, L1),
   length(Path2, L2),
-  my_agent(A),
-  query_world(agent_current_energy, [A, E]),
+  my_agent(Agent),
+  query_world(agent_current_energy, [Agent, E]),
+  add(L1,L2,10,LT),!,
+  write(LT),nl,
   (
-    L1 + L2 + 10 < E -> reverse(Path,[_Init|P]),
-                        query_world( agent_do_moves, [A,P] ),
-                        agent_ask_oracle(oscar, ID, link, L)
+    LT < E -> reverse(Path,[_Init|P]),
+              query_world( agent_do_moves, [Agent,P] ),
+              write(asking_),write(ID),nl,
+              query_world( agent_ask_oracle, [Agent, ID, link, L]),
+              write(L),nl
   ; otherwise ->  getPathCost(S, C, (o(-1),[]), (CS,CSPath)),
                   reverse(CSPath,[_Init|P]),
-                  query_world( agent_do_moves, [A,P]),
-                  agent_topup_energy(A,CS)
+                  query_world( agent_do_moves, [Agent,P]),
+                  agent_topup_energy(Agent,CS)
   ).
 
-find_identity_o(S, X, [A|[]], [], Lt, O, C):-
+find_identity_o(X, [A|[]], [], Lt, O, C):-
   X = A.
 % repeat the link function thing here
-find_identity_o(S, X, As, [], Lt, O, C):-
+find_identity_o(X, As, [], Lt, O, C):-
+  my_agent(Agent),
+  query_world(agent_current_position, [Agent, S]),
   goToNearOracle(S, O, C, L),
-  find_identity_o(S, X, [], As, L, O, C).
-find_identity_o(S, X, As, [B|Bs], Lt, O, C):-
+  find_identity_o(X, [], As, L, O, C).
+find_identity_o(X, As, [B|Bs], Lt, O, C):-
   wp(B, WT),
   bagof(L, wt_link(WT, L), Ls),
   (
-    memberchk(Lt, Ls) -> find_identity_o(S, X, [B|As], Bs, Lt, O, C)
-  ; otherwise -> find_identity_o(S, X, As, Bs, Lt, O, C)
+    memberchk(Lt, Ls) -> find_identity_o(X, [B|As], Bs, Lt, O, C)
+  ; otherwise -> find_identity_o(X, As, Bs, Lt, O, C)
   ).
 
 find_identity_o(A):-
@@ -85,7 +109,7 @@ find_identity_o(A):-
   bagof(X, actor(X), Actors),
   write(predone),nl,
   goToNearOracle(S, Oracles, Stations, L),
-  find_identity_o(S, A, [], Actors, L, Oracles, Stations).
+  find_identity_o(A, [], Actors, L, Oracles, Stations).
 
 flood_check([],_,_,_,Acc,Acc).
 flood_check(Targets,Visited,LastRound,[],Acc,Result) :-
