@@ -77,18 +77,19 @@ goToNearOracle(S, O, C, L):-
   (
     LT < E -> reverse(Path,[_Init|P]),
               query_world( agent_do_moves, [Agent,P] ),
-              write(asking_),write(ID),nl,
+              write('asking '),write(ID),nl,
               query_world( agent_ask_oracle, [Agent, ID, link, L]),
               write(L),nl
   ; otherwise ->  getPathCost(S, C, (o(-1),[]), (c(CS),CSPath)),
                   reverse(CSPath,[_Init|P]),
                   query_world( agent_do_moves, [Agent,P]),
-                  agent_topup_energy(Agent,CS),
+                  write('charging at '),write(c(CS)),nl,
+                  query_world(agent_topup_energy, [Agent,CS]),
                   CSPath = [Location|PrevPath],
                   goToNearOracle(Location, O, C, L)
   ).
 
-find_identity_o(A, [A|[]], [], Lt, O, C).
+find_identity_o(A, [A|[]], [], _, _, _).
 % repeat the link function thing here
 find_identity_o(X, As, [], Lt, O, C):-
   my_agent(Agent),
@@ -147,7 +148,9 @@ content_search(Targets, Results):-
 is_oracle((o(_)|_)).
 is_charging((c(_)|_)).
 preprocess(Oracles, Charging):-
+  set_prolog_stack(global, limit(100 000 000 000)),
   content_search([o(1),o(2),o(3),o(4),o(5),o(6),o(7),o(8),o(9),o(10),c(1),c(2)], Items),!,
-  include(is_oracle, Items, Oracles),
-  include(is_charging, Items, Charging).
-  
+  include(is_oracle, Items, TempO),
+  include(is_charging, Items, TempC),
+  reverse(TempO, Oracles),
+  reverse(TempC, Charging). 
