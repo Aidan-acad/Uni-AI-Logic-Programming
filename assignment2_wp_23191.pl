@@ -1,4 +1,4 @@
-% candidate_number(12345).
+candidate_number(12345).
 
 % Find hidden identity by repeatedly calling agent_ask_oracle(oscar,o(1),link,L)
 % find_identity(-A)
@@ -80,14 +80,15 @@ goToNearOracle(S, O, C, L):-
               write(asking_),write(ID),nl,
               query_world( agent_ask_oracle, [Agent, ID, link, L]),
               write(L),nl
-  ; otherwise ->  getPathCost(S, C, (o(-1),[]), (CS,CSPath)),
+  ; otherwise ->  getPathCost(S, C, (o(-1),[]), (c(CS),CSPath)),
                   reverse(CSPath,[_Init|P]),
                   query_world( agent_do_moves, [Agent,P]),
-                  agent_topup_energy(Agent,CS)
+                  agent_topup_energy(Agent,CS),
+                  CSPath = [Location|PrevPath],
+                  goToNearOracle(Location, O, C, L)
   ).
 
-find_identity_o(X, [A|[]], [], Lt, O, C):-
-  X = A.
+find_identity_o(A, [A|[]], [], Lt, O, C).
 % repeat the link function thing here
 find_identity_o(X, As, [], Lt, O, C):-
   my_agent(Agent),
@@ -107,7 +108,7 @@ find_identity_o(A):-
   my_agent(Agent),
   query_world(agent_current_position, [Agent, S]),
   bagof(X, actor(X), Actors),
-  write(predone),nl,
+  write('predone'),nl,
   goToNearOracle(S, Oracles, Stations, L),
   find_identity_o(A, [], Actors, L, Oracles, Stations).
 
